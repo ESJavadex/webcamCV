@@ -1,12 +1,14 @@
 import numpy as np
 import cv2
-
+import time
+import math 
 #cap = cv2.VideoCapture(0)
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW) #captureDevice = camera
 
 net = cv2.dnn.readNet("yolov3.weights", "yolov3.cfg")
 
 classes = []
+
 with open("coco.names", "r") as f:
     classes = [line.strip() for line in f.readlines()]
 layer_names = net.getLayerNames()
@@ -14,11 +16,13 @@ output_layers = [layer_names[i-1] for i in net.getUnconnectedOutLayers()]
 
 while True:
     # Capture frame-by-frame
-
+    start_time = time.time() # start time of the loop
     ret, frame = cap.read()
     height, width, channel = frame.shape
+    fps = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 
-    blob = cv2.dnn.blobFromImage(frame, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
+    #blob = cv2.dnn.blobFromImage(frame, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
+    blob = cv2.dnn.blobFromImage(frame, 0.00392, (256, 256), (0, 0, 0), True, crop=False)
 
     net.setInput(blob)
     outs = net.forward(output_layers)
@@ -54,10 +58,14 @@ while True:
             x, y, w, h = boxes[i]
             label = str(classes[class_ids[i]]) + str(round(confidences[i]*100,1)) +'%'
             cv2.rectangle(frame, (x, y), (x + w, y + h), [0,0,255], 1)
-            cv2.putText(frame, label, (x, y + 30), font, 3, [0,0,255], 2)
+            cv2.putText(frame, label, (x, y + 30), font, 1, [0,0,255], 2)
 
     # Display the resulting frame
-    cv2.imshow('frame', frame)
+    fps = math.ceil(1.0 / (time.time() - start_time))
+    print("FPS: ",fps)
+    cv2.putText(frame, str(fps) + " FPS", (0, 0 + 30), font, 1, [0,255,255], 2)
+
+    cv2.imshow('frame', frame)    
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
